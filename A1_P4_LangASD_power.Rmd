@@ -6,7 +6,11 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+
+#Libraries 
+library(stringr);library(tidyverse);library(dplyr);library(data.table);library(plyr);library(lme4);library(modelr);library(caret);library(mlbench);library(groupdata2);library(Metrics);library(merTools);library(simr)
+
+
 ```
 
 ## Welcome to the fourth exciting part of the Language Development in ASD exercise
@@ -18,13 +22,52 @@ In this exercise we will assess how many participants we would need to adequatel
 How much power does your study have (if your model estimates are quite right)?
 - [GitHub]Load your dataset, fit your favorite model, assess power for your main effects and interactions of interest.
 - Report the power analysis and comment on what you can (or cannot) use its estimates for.
+```{r}
+
+data.train = read.csv("Assignment1data")
+
+#favorite model:
+Model_train = lmer(CHI_MLU ~ VISIT * Diagnosis + types_CHI + (1+VISIT|ID), data=data.train, REML = FALSE)
+
+#asses power for main effects and interaction effect
+power_interaction = powerSim(Model_train, fixed("VISIT:Diagnosis"), nsim = 10)
+
+power_interaction #get power output
+
+#for types
+power_types = powerSim(Model_train, fixed("types_CHI"), nsim = 10)
+
+power_types
+
+```
 
 ### Exercise 2
 
 How would you perform a more conservative power analysis?
 - Identify and justify a minimum effect size for each of your relevant effects
 - [GitHub] take the model from exercise 1 and replace the effects with the minimum effect size that you'd accept.
-- [GitHub] assess the power curve by Child.ID, identifying an ideal number of participants to estimate each effect
+- [GitHub] assess the power curve by Child.ID, identifying an ideal number of participants to estimate each effect: for visit the ideal number of participants would be approximately 17 to detect an effect of 0.1 MLU's more pr. visit pr child at a 80% power threshold
+```{r}
+
+#Set new beta for visit and make power curve
+fixef(Model_train)["VISIT"] = 0.1 #changing the beta for the model. The beta(slope) is set to 10 - we are testing how many participants we want 
+
+
+powerCurveV = powerCurve(Model_train,fixed("VISIT"), along = "ID", nsim = 20)
+plot(powerCurveV)
+
+#set new beta for diagnosis and make power curve 
+fixef(Model_train)["DiagnosisTD"] = 1
+powerCurveD = powerCurve(Model_train,fixed("DiagnosisTD"), along = "ID", nsim = 20)
+plot(powerCurveD)
+
+
+powerCurveI = powerCurve(Model_train,fixed("VISIT:DiagnosisTD"), along = "ID", nsim = 20)
+plot(powerCurveI)
+
+```
+
+
 - OPTIONAL if your power estimates do not reach an acceptable threshold simulate additional participants and repeat the previous analysis
 - Report the power analysis and comment on what you can (or cannot) use its estimates for.
 
